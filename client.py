@@ -56,7 +56,7 @@ def send_packet(data: str, seq: int):
     print('Sending packet')
     message_with_seq = f"{data}!{seq}!{CLIENT_HOST}:{CLIENT_PORT}"
     proxy_socket.sendto(message_with_seq.encode(FORMAT), (PROXY_HOST, int(PROXY_PORT)))
-    stats.increment_sent_packets()
+    stats.increment_data_packets()
 
 
 def send_input():

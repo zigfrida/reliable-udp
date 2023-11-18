@@ -2,12 +2,15 @@ import socket
 import signal
 import sys
 
+from packet_statistics import PacketStatistics
+
 HOST = "127.0.0.1"  
 PORT = 65432       
 SIZE = 1024
 FORMAT = "utf-8"
 
 server_socket = None
+stats = PacketStatistics()
 
 def signal_handler(sig, frame):
     print("\nUser Interruption. Shutting down server.")
@@ -25,12 +28,14 @@ def main():
     while True:
         message_with_seq, addr = server_socket.recvfrom(SIZE) 
         if message_with_seq:
+            stats.increment_data_packets()
             data, seq, client_addr = message_with_seq.decode(FORMAT).split("!")
             print(f"Message Received: {data}")
             server_response = f"{seq}!{client_addr}"
             print(f"Sending ACK: {seq}")
 
             server_socket.sendto(server_response.encode(FORMAT), addr)
+            stats.increment_ack_packets()
 
 
 if __name__ == "__main__":

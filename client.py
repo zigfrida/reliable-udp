@@ -10,8 +10,8 @@ from threading import Thread
 
 PROXY_HOST = "127.0.0.1"
 PROXY_PORT = 65432
-CLIENT_HOST = "127.0.0.1"
-CLIENT_PORT = 65436
+CLIENT_HOST = "192.168.0.2"
+CLIENT_PORT = 65432
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -80,7 +80,7 @@ def listen_acks():
     while True:
         data, _ = client_socket.recvfrom(SIZE)  # data, address
         if data:
-            seq_received, addr = data.decode(FORMAT).split("!")
+            seq_received = data.decode(FORMAT)
             print(f"Received: {seq_received}")
             stats.increment_ack_packets()
             seq_number_with_ack_received.add(int(seq_received))

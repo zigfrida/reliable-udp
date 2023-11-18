@@ -31,6 +31,7 @@ def signal_handler(sig, frame):
 
 def proxy_prob():
     chance = random.random()
+    print(f"Chance: {chance}")
     if chance < PROB_DELAYS:
         print("Pakcet Delayed")
         time.sleep(3)
@@ -46,7 +47,7 @@ def send_to_server():
 
         if client_data:
             print("Got data from client")
-            if proxy_prob:
+            if proxy_prob():
                 print("Sending to server")
                 sequence_message = client_data.decode(FORMAT)
                 print(f"Message sending to server: {sequence_message}")
@@ -58,7 +59,7 @@ def send_to_client():
         data, _ = server_socket.recvfrom(SIZE)
         if data:
             print("Got sequence number from server")
-            if proxy_prob:
+            if proxy_prob():
                 seq, client_addr = data.decode(FORMAT).split("!")
                 host, port = client_addr.split(":")
                 print(f"Sending to client: {client_addr}")

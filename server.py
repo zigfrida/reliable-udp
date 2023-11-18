@@ -36,6 +36,7 @@ def main():
 
             server_socket.sendto(server_response.encode(FORMAT), addr)
             stats.increment_ack_packets()
+            print(stats)
 
 
 if __name__ == "__main__":

@@ -20,6 +20,8 @@ client_socket = None
 proxy_socket = None
 
 seq_number_with_ack_received = set()
+stats = PacketStatistics()
+
 TIMEOUT_IN_SECOND = 3
 ACK_CHECKING_FREQUENCY_IN_SECOND = 1
 
@@ -34,9 +36,9 @@ def signal_handler(sig, frame):
 
 
 def get_is_packet_acknowledged(seq_number: int) -> bool:
-    time.sleep(ACK_CHECKING_FREQUENCY_IN_SECOND)
     if seq_number in seq_number_with_ack_received:
         return True
+    time.sleep(ACK_CHECKING_FREQUENCY_IN_SECOND)
     return False
 
 
@@ -54,9 +56,10 @@ def send_packet(data: str, seq: int):
     print('Sending packet')
     message_with_seq = f"{data}!{seq}!{CLIENT_HOST}:{CLIENT_PORT}"
     proxy_socket.sendto(message_with_seq.encode(FORMAT), (PROXY_HOST, int(PROXY_PORT)))
+    stats.increment_sent_packets()
 
 
-def send_input(stats: PacketStatistics):
+def send_input():
     # Clears all acks in the memory per input.
     seq_number_with_ack_received.clear()
 
@@ -73,16 +76,18 @@ def send_input(stats: PacketStatistics):
 
 
 def listen_acks():
+    seq_number_with_ack_received.add(1)
     while True:
         data, _ = client_socket.recvfrom(SIZE)  # data, address
         if data:
             seq_received, addr = data.decode(FORMAT).split("!")
             print(f"Received: {seq_received}")
+            stats.increment_ack_packets()
             seq_number_with_ack_received.add(int(seq_received))
+
 
 def start_sending():
     try:
-        stats = PacketStatistics()
         while True:
             send_input(stats)
             print(stats)

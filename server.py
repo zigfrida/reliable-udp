@@ -24,12 +24,10 @@ def main():
 
     while True:
         message_with_seq, addr = server_socket.recvfrom(SIZE) 
-        print(f"Received: {message_with_seq}")
         if message_with_seq:
             data, seq, client_addr = message_with_seq.decode(FORMAT).split("!")
-
+            print(f"Message Received: {data}")
             server_response = f"{seq}!{client_addr}"
-            # print(f"Received message from {addr}: {data}")
             print(f"Sending ACK: {seq}")
 
             server_socket.sendto(server_response.encode(FORMAT), addr)

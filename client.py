@@ -89,7 +89,7 @@ def listen_acks():
 def start_sending():
     try:
         while True:
-            send_input(stats)
+            send_input()
             print(stats)
     finally:
         proxy_socket.close()

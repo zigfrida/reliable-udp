@@ -18,7 +18,7 @@ PROB_DELAYS = 0.1
 
 proxy_socket = None
 server_socket = None
-server_resposponse = None
+server_response = None
 
 def signal_handler(sig, frame):
     print("\nUser Interruption. Stopping Proxy.")
@@ -31,10 +31,10 @@ def send_to_server(client_data):
     global server_socket, server_response
     chance = random.random() 
     print(f"Chance to delay to client: {chance}")
-    if chance > PROB_DELAYS:
+    if chance < PROB_DELAYS:
         print("Delay packet to Server.")
         time.sleep(3)
-    elif chance > PROB_DROPS:
+    elif chance < PROB_DROPS:
         print("Packet dropped, not sent to Server.")
         return
 
@@ -53,10 +53,10 @@ def send_to_server(client_data):
 def send_to_client(client_addr):
     chance = random.random() 
     print(f"Chance to delay to server: {chance}")
-    if chance > PROB_DELAYS:
+    if chance < PROB_DELAYS:
         print("Delay packet to Client.")
         time.sleep(3)
-    elif chance > PROB_DROPS:
+    elif chance < PROB_DROPS:
         print("Packet dropped, not sent to Client.")
         return
 

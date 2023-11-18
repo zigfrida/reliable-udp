@@ -49,7 +49,6 @@ def get_timeout():
 
 def send_packet(data: str, seq: int):
     print('Sending packet')
-    seq_number_with_ack_received.add(seq) # Add sequence number to set
     message_with_seq = f"{data}!{seq}"
     server_socket.sendto(message_with_seq.encode(FORMAT), (HOST, int(PORT)))
 
@@ -62,17 +61,18 @@ async def send_input(stats: PacketStatistics):
     send_packet(input_text, seq_number)
     timeout = get_timeout()
 
-    data, _ = server_socket.recvfrom(SIZE) # data, address
-    seq_received = int(data.decode(FORMAT))
-    print(f"Received: {seq_received}")
-    seq_number_with_ack_received.remove(seq_received)
-
     while not await get_is_packet_acknowledged(seq_number):
-        simulate_getting_ack_back_with_possible_loss_and_delay(seq_number, stats)
         if timeout <= datetime.now():
             timeout = get_timeout()
             print("Timed out")
             send_packet(input_text, seq_number)
+
+def listen_acks():
+    while True:
+        data, _ = server_socket.recvfrom(SIZE) # data, address
+        seq_received = int(data.decode(FORMAT))
+        print(f"Received: {seq_received}")
+        seq_number_with_ack_received.add(seq_received)
 
 
 async def main():
@@ -95,3 +95,4 @@ async def main():
             server_socket.close()
 
 asyncio.run(main())
+asyncio.run(listen_acks())

@@ -13,12 +13,11 @@ PROXY_PORT = 65431
 SERVER_HOST = "127.0.0.1" 
 SERVER_PORT = 65432  
 
-PROB_DROPS = 0.2
-PROB_DELAYS = 0.3
+PROB_DROPS = 0.1
+PROB_DELAYS = 0.1
 
 proxy_socket = None
 server_socket = None
-client_addr = None
 server_resposponse = None
 
 def signal_handler(sig, frame):
@@ -28,9 +27,10 @@ def signal_handler(sig, frame):
     exit(0)
 
 # Forward message and sequence number to the server
-def send_to_server():
-    global client_addr, server_response
+def send_to_server(client_data):
+    global server_socket, server_response
     chance = random.random() 
+    print(f"Chance to delay to client: {chance}")
     if chance > PROB_DELAYS:
         print("Delay packet to Server.")
         time.sleep(3)
@@ -39,12 +39,10 @@ def send_to_server():
         return
 
     print("Sending to server")
-    client_data, adr = proxy_socket.recvfrom(SIZE)  
-    client_addr = adr
     sequence_message = client_data.decode(FORMAT)
     
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.sendto(sequence_message.encode(FORMAT), (SERVER_HOST, SERVER_PORT))
+    server_socket.sendto(sequence_message.encode(FORMAT), (SERVER_HOST, int(SERVER_PORT)))
 
     # Receive response from the server
     seq, _ = server_socket.recvfrom(SIZE)
@@ -52,8 +50,9 @@ def send_to_server():
     server_socket.close()
 
 
-def send_to_client():
+def send_to_client(client_addr):
     chance = random.random() 
+    print(f"Chance to delay to server: {chance}")
     if chance > PROB_DELAYS:
         print("Delay packet to Client.")
         time.sleep(3)
@@ -66,21 +65,24 @@ def send_to_client():
 
 
 def main():
+    global proxy_socket
     signal.signal(signal.SIGINT, signal_handler)
 
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  
-    proxy_socket.bind((PROXY_HOST, PROXY_PORT))
+    proxy_socket.bind((PROXY_HOST, int(PROXY_PORT)))
     print(f"Proxy listening on {PROXY_HOST}:{PROXY_PORT}")
 
-    while True:
-        send_to_server()
-        send_to_client()
+    # while True:
+    client_data, client_addr = proxy_socket.recvfrom(SIZE)  
+    send_to_server(client_data)
+    send_to_client(client_addr)
 
     proxy_socket.close()  # Close the proxy socket when done
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 4:
         print("Missing required arguments.")
+        print("Command: python3 proxy.py 127.0.0.1 65432 127.0.0.1 65433")
     else: 
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]

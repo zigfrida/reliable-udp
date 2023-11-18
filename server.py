@@ -1,5 +1,6 @@
 import socket
 import signal
+import sys
 
 HOST = "127.0.0.1"  
 PORT = 65432       
@@ -32,4 +33,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 2:
+        print("Missing IP or port.")
+    else:
+        HOST = sys.argv[1]
+        PORT = sys.argv[2]
+        main()

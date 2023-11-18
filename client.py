@@ -76,7 +76,7 @@ def listen_acks():
     while True:
         data, _ = client_socket.recvfrom(SIZE)  # data, address
         if data:
-            seq_received, addr = data.decode(FORMAT).split("!")
+            seq_received = data.decode(FORMAT)
             print(f"Received: {seq_received}")
             seq_number_with_ack_received.add(int(seq_received))
 

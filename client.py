@@ -9,24 +9,30 @@ import threading
 import logging
 import time
 
-HOST = "127.0.0.1"
-PORT = 65432
+PROXY_HOST = "127.0.0.1"  
+PROXY_PORT = 65432   
+CLIENT_HOST = "127.0.0.1"  
+CLIENT_PORT = 65436   
+
 SIZE = 1024
 FORMAT = "utf-8"
-server_socket = None
 
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
+client_socket = None
+proxy_socket = None
+
+loop = asyncio.get_event_loop()
 
 seq_number_with_ack_received = set()
 TIMEOUT_IN_SECOND = 3
 ACK_CHECKING_FREQUENCY_IN_SECOND = 1
 
-
 def signal_handler(sig, frame):
     print("\nUser Interruption. Stopping Client.")
+    if proxy_socket:
+        proxy_socket.close()
+    if client_socket:
+        client_socket.close()
     exit(0)
-
 
 def simulate_getting_ack_back_with_possible_loss_and_delay(seq_number: int, stats: PacketStatistics):
     if random.random() < 0.2:
@@ -53,78 +59,56 @@ def get_timeout():
     return timeout
 
 
-def send_packet(server_socket, data: str, seq: int):
+def send_packet(data: str, seq: int):
     print('Sending packet')
-    message_with_seq = f"{data}!{seq}"
-    server_socket.sendto(message_with_seq.encode(FORMAT), (HOST, int(PORT)))
+    message_with_seq = f"{data}!{seq}!{CLIENT_HOST}:{CLIENT_PORT}"
+    proxy_socket.sendto(message_with_seq.encode(FORMAT), (PROXY_HOST, int(PROXY_PORT)))
 
-
-async def send_input(stats: PacketStatistics, server_socket):
+async def send_input(stats: PacketStatistics):
     # Clears all acks in the memory per input.
     seq_number_with_ack_received.clear()
 
     input_text = input("Type words to send: ")
     seq_number = get_seq_number()
-    send_packet(server_socket, input_text, seq_number)
+    send_packet(input_text, seq_number)
     timeout = get_timeout()
 
     while not await get_is_packet_acknowledged(seq_number):
         if timeout <= datetime.now():
             timeout = get_timeout()
             print("Timed out")
-            send_packet(server_socket, input_text, seq_number)
+            send_packet(input_text, seq_number)
 
-
-async def send_data(name):
-    stats = PacketStatistics()
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
+def listen_acks():
     while True:
-        await send_input(stats, server_socket)
-        print(stats)
-
-
-async def receive_acks(name):
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    logging.info("Thread %s: starting", name)
-    print("Listening")
-    while True:
-        data, _ = server_socket.recvfrom(SIZE)  # data, address
-        seq_received = int(data.decode(FORMAT))
+        data, _ = client_socket.recvfrom(SIZE) # data, address
+        seq_received, addr = data.decode(FORMAT).split("!")
         print(f"Received: {seq_received}")
-        seq_number_with_ack_received.add(seq_received)
+        seq_number_with_ack_received.add(int(seq_received))
 
 
-def receive_thread(args):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+async def main():
+    global PROXY_HOST, PROXY_PORT, proxy_socket, client_socket
+    signal.signal(signal.SIGINT, signal_handler)
 
-    loop.run_until_complete(receive_acks(args))
-    loop.close()
-
-
-def send_thread(args):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    loop.run_until_complete(send_data(args))
-    loop.close()
-
-
-if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Missing required arguments.")
-        print("Command: python3 proxy.py 127.0.0.1 65432 127.0.0.1 65433")
+        print("Missing IP address and port for proxy")
     else:
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]
+        proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    
+        print(f"Client listening on {CLIENT_HOST}:{CLIENT_PORT}")
+        client_socket.bind((CLIENT_HOST, int(CLIENT_PORT)))
 
-    signal.signal(signal.SIGINT, signal_handler)
-    logging_format = "%(asctime)s: %(message)s"
-    logging.basicConfig(format=logging_format, level=logging.INFO, datefmt="%H:%M:%S")
+        try:
+            stats = PacketStatistics()
+            while True:
+                await send_input(stats)
+                print(stats)
+        finally:
+            proxy_socket.close()
 
-    recv_thread = threading.Thread(target=receive_thread, args=("receive_thread",))
-    recv_thread.start()
-    send_thread = threading.Thread(target=send_thread, args=("send_thread",))
-    send_thread.start()
-
+asyncio.run(main())
+# asyncio.run(listen_acks())

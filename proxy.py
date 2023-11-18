@@ -3,6 +3,7 @@ import sys
 import signal
 import random
 import time
+from threading import Thread
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -24,60 +25,66 @@ def signal_handler(sig, frame):
     print("\nUser Interruption. Stopping Proxy.")
     if(proxy_socket):
         proxy_socket.close()
+    if(server_socket):
+        server_socket.close()
     exit(0)
 
-# Forward message and sequence number to the server
-def send_to_server(client_data):
-    global server_socket, server_response
-    chance = random.random() 
-    print(f"Chance to delay to client: {chance}")
+def proxy_prob():
+    chance = random.random()
     if chance < PROB_DELAYS:
-        print("Delay packet to Server.")
+        print("Pakcet Delayed")
         time.sleep(3)
     elif chance < PROB_DROPS:
-        print("Packet dropped, not sent to Server.")
-        return
+        print("Packet Dropped")
+        return False
+    return True
 
-    print("Sending to server")
-    sequence_message = client_data.decode(FORMAT)
-    
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.sendto(sequence_message.encode(FORMAT), (SERVER_HOST, int(SERVER_PORT)))
+def send_to_server():
+    while True:
+        print("Waiting for data from client")
+        client_data, client_addr = proxy_socket.recvfrom(SIZE)
 
-    # Receive response from the server
-    seq, _ = server_socket.recvfrom(SIZE)
-    server_response = seq
-    server_socket.close()
+        if client_data:
+            print("Got data from client")
+            if proxy_prob:
+                print("Sending to server")
+                sequence_message = client_data.decode(FORMAT)
+                print(f"Message sending to server: {sequence_message}")
+                server_socket.sendto(client_data, (SERVER_HOST, int(SERVER_PORT)))
 
-
-def send_to_client(client_addr):
-    chance = random.random() 
-    print(f"Chance to delay to server: {chance}")
-    if chance < PROB_DELAYS:
-        print("Delay packet to Client.")
-        time.sleep(3)
-    elif chance < PROB_DROPS:
-        print("Packet dropped, not sent to Client.")
-        return
-
-    print("Sending to client.")
-    proxy_socket.sendto(server_response, client_addr) # Send server's response (sequence number) back to the client
+def send_to_client():
+    while True:
+        print("Waiting for data from server")
+        data, _ = server_socket.recvfrom(SIZE)
+        if data:
+            print("Got sequence number from server")
+            if proxy_prob:
+                seq, client_addr = data.decode(FORMAT).split("!")
+                host, port = client_addr.split(":")
+                print(f"Sending to client: {client_addr}")
+                proxy_socket.sendto(seq.encode(FORMAT), (host, int(port)))
+                
+            
 
 
 def main():
-    global proxy_socket
+    global proxy_socket, server_socket
     signal.signal(signal.SIGINT, signal_handler)
 
     proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  
     proxy_socket.bind((PROXY_HOST, int(PROXY_PORT)))
     print(f"Proxy listening on {PROXY_HOST}:{PROXY_PORT}")
 
-    # while True:
-    client_data, client_addr = proxy_socket.recvfrom(SIZE)  
-    send_to_server(client_data)
-    send_to_client(client_addr)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    proxy_socket.close()  # Close the proxy socket when done
+    # start Send to server thread
+    t1 = Thread(target=send_to_server)
+    t1.start()
+    # start Send to client thread
+    t2 = Thread(target=send_to_client)
+    t2.start()
+
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:

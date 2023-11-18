@@ -33,16 +33,8 @@ def signal_handler(sig, frame):
     exit(0)
 
 
-def simulate_getting_ack_back_with_possible_loss_and_delay(seq_number: int, stats: PacketStatistics):
-    if random.random() < 0.2:
-        print("Act for " + str(seq_number) + " received.")
-        seq_number_with_ack_received.add(seq_number)
-        stats.increment_ack_packets()
-
-
 def get_is_packet_acknowledged(seq_number: int) -> bool:
     time.sleep(ACK_CHECKING_FREQUENCY_IN_SECOND)
-    print("Waited " + str(ACK_CHECKING_FREQUENCY_IN_SECOND) + " seconds.")
     if seq_number in seq_number_with_ack_received:
         return True
     return False
@@ -83,9 +75,10 @@ def send_input(stats: PacketStatistics):
 def listen_acks():
     while True:
         data, _ = client_socket.recvfrom(SIZE)  # data, address
-        seq_received, addr = data.decode(FORMAT).split("!")
-        print(f"Received: {seq_received}")
-        seq_number_with_ack_received.add(int(seq_received))
+        if data:
+            seq_received, addr = data.decode(FORMAT).split("!")
+            print(f"Received: {seq_received}")
+            seq_number_with_ack_received.add(int(seq_received))
 
 def start_sending():
     try:

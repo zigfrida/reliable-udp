@@ -107,7 +107,7 @@ def update_metrics_history():
 
 # Implement it so it updates total packet metrics from network
 def receive_metrics():
-    # Update these from network call
+    # Update these and more from network calls instead
     global sender_ack_from_receiver_total_packet, proxy_act_from_receiver_total_packet, proxy_data_from_sender_total_packet, proxy_data_to_receiver_total_packet
     while True:
         time.sleep(0.5)

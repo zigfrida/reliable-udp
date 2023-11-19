@@ -57,7 +57,7 @@ def send_packet(data: str, seq: int):
     message_with_seq = f"{data}!{seq}!{CLIENT_HOST}:{CLIENT_PORT}"
     proxy_socket.sendto(message_with_seq.encode(FORMAT), (PROXY_HOST, int(PROXY_PORT)))
     stats.increment_data_packets()
-
+    print(stats)
 
 def send_input():
     # Clears all acks in the memory per input.
@@ -73,7 +73,6 @@ def send_input():
             timeout = get_timeout()
             print("Timed out")
             send_packet(input_text, seq_number)
-
 
 def listen_acks():
     seq_number_with_ack_received.add(1)
@@ -91,7 +90,6 @@ def start_sending():
     try:
         while True:
             send_input()
-            print(stats)
     finally:
         proxy_socket.close()
 

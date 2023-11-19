@@ -84,6 +84,7 @@ def listen_acks():
             print(f"Received: {seq_received}")
             stats.increment_ack_packets()
             seq_number_with_ack_received.add(int(seq_received))
+            print(stats)
 
 
 def start_sending():

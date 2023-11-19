@@ -15,8 +15,8 @@ PROXY_PORT = 65431
 SERVER_HOST = "127.0.0.1" 
 SERVER_PORT = 65432  
 
-PROB_DROPS = 0.1
-PROB_DELAYS = 0.1
+PROB_DROPS = 0.5
+PROB_DELAYS = 0.5
 
 proxy_socket = None
 server_socket = None
@@ -33,23 +33,26 @@ def signal_handler(sig, frame):
     exit(0)
 
 def proxy_prob():
-    chance = random.random()
-    print(f"Chance: {chance}")
-    if chance < PROB_DELAYS:
+    delay_chance = random.random()
+    print(f"Delay chance: {delay_chance}")
+    if delay_chance < PROB_DELAYS:
         print("Pakcet Delayed")
         time.sleep(3)
-    elif chance < PROB_DROPS:
+        return True
+    
+    drop_chance = random.random()
+    if drop_chance < PROB_DROPS:
         print("Packet Dropped")
         return False
+    
     return True
 
 def send_to_server():
     while True:
         print("Waiting for data from client")
         client_data, client_addr = proxy_socket.recvfrom(SIZE)
-        stats.inc_packet_from_client()
-
         if client_data:
+            stats.inc_packet_from_client()
             print("Got data from client")
             if proxy_prob():
                 print("Sending to server")
@@ -57,23 +60,22 @@ def send_to_server():
                 sequence_message = client_data.decode(FORMAT)
                 print(f"Message sending to server: {sequence_message}")
                 server_socket.sendto(client_data, (SERVER_HOST, int(SERVER_PORT)))
-                print(stats)
+            print(stats)
 
 def send_to_client():
     while True:
         print("Waiting for data from server")
         data, _ = server_socket.recvfrom(SIZE)
-        stats.inc_ack_from_server()
         if data:
+            stats.inc_ack_from_server()
             print("Got sequence number from server")
             if proxy_prob():
                 stats.inc_ack_to_client()
-                stats.inc
                 seq, client_addr = data.decode(FORMAT).split("!")
                 host, port = client_addr.split(":")
                 print(f"Sending to client: {client_addr}")
                 proxy_socket.sendto(seq.encode(FORMAT), (host, int(port)))
-                print(stats)
+            print(stats)
             
 
 

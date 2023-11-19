@@ -4,6 +4,7 @@ import signal
 import random
 import time
 from threading import Thread
+from proxy_packet_statistics import ProxyPacketStatistics
 
 SIZE = 1024
 FORMAT = "utf-8"
@@ -20,6 +21,8 @@ PROB_DELAYS = 0.1
 proxy_socket = None
 server_socket = None
 server_response = None
+
+stats = ProxyPacketStatistics()
 
 def signal_handler(sig, frame):
     print("\nUser Interruption. Stopping Proxy.")
@@ -44,27 +47,33 @@ def send_to_server():
     while True:
         print("Waiting for data from client")
         client_data, client_addr = proxy_socket.recvfrom(SIZE)
+        stats.inc_packet_from_client()
 
         if client_data:
             print("Got data from client")
             if proxy_prob():
                 print("Sending to server")
+                stats.inc_packet_to_server()
                 sequence_message = client_data.decode(FORMAT)
                 print(f"Message sending to server: {sequence_message}")
                 server_socket.sendto(client_data, (SERVER_HOST, int(SERVER_PORT)))
+                print(stats)
 
 def send_to_client():
     while True:
         print("Waiting for data from server")
         data, _ = server_socket.recvfrom(SIZE)
+        stats.inc_ack_from_server()
         if data:
             print("Got sequence number from server")
             if proxy_prob():
+                stats.inc_ack_to_client()
+                stats.inc
                 seq, client_addr = data.decode(FORMAT).split("!")
                 host, port = client_addr.split(":")
                 print(f"Sending to client: {client_addr}")
                 proxy_socket.sendto(seq.encode(FORMAT), (host, int(port)))
-                
+                print(stats)
             
 
 

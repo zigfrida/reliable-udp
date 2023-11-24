@@ -1,7 +1,12 @@
 ## Install packages
+
 pip3 install -r requirements.txt
 
 ## Run Client
+
+```
+python3 client.py [Proxy IP] [Proxy Port]
+```
 
 `python3 client.py [Proxy IP] [Proxy Port]`
 
@@ -16,3 +21,5 @@ pip3 install -r requirements.txt
 ## Run Grapher
 
 `python3 gui_grapher.ph`
+
+![Alt text](image.png)

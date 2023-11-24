@@ -5,7 +5,7 @@ import sys
 from packet_statistics import PacketStatistics
 
 HOST = "127.0.0.1"  
-PORT = 65432       
+PORT = 65433       
 SIZE = 1024
 FORMAT = "utf-8"
 

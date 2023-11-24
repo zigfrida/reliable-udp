@@ -4,16 +4,16 @@ import signal
 import random
 import time
 from threading import Thread
-from proxy_packet_statistics import ProxyPacketStatistics
+from packet_statistics import PacketStatistics
 
 SIZE = 1024
 FORMAT = "utf-8"
 
 PROXY_HOST = "127.0.0.1"  
-PROXY_PORT = 65431      
+PROXY_PORT = 65432      
 
 SERVER_HOST = "127.0.0.1" 
-SERVER_PORT = 65432  
+SERVER_PORT = 65433  
 
 PROB_DROPS = 0.5
 PROB_DELAYS = 0.5
@@ -22,7 +22,7 @@ proxy_socket = None
 server_socket = None
 server_response = None
 
-stats = ProxyPacketStatistics()
+stats = PacketStatistics()
 
 def signal_handler(sig, frame):
     print("\nUser Interruption. Stopping Proxy.")
@@ -60,7 +60,7 @@ def send_to_server():
                 sequence_message = client_data.decode(FORMAT)
                 print(f"Message sending to server: {sequence_message}")
                 server_socket.sendto(client_data, (SERVER_HOST, int(SERVER_PORT)))
-            print(stats)
+            stats.str_proxy()
 
 def send_to_client():
     while True:
@@ -75,7 +75,7 @@ def send_to_client():
                 host, port = client_addr.split(":")
                 print(f"Sending to client: {client_addr}")
                 proxy_socket.sendto(seq.encode(FORMAT), (host, int(port)))
-            print(stats)
+            stats.str_proxy()
             
 
 
@@ -101,7 +101,7 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print("Missing required arguments.")
-        print("Command: python3 proxy.py 127.0.0.1 65432 127.0.0.1 65433")
+        print("Command: python3 proxy.py PROXY_HOST PORT SERVER_HOST PORT")
     else: 
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]

@@ -56,8 +56,8 @@ def send_packet(data: str, seq: int):
     print('Sending packet')
     message_with_seq = f"{data}!{seq}!{CLIENT_HOST}:{CLIENT_PORT}"
     proxy_socket.sendto(message_with_seq.encode(FORMAT), (PROXY_HOST, int(PROXY_PORT)))
-    stats.increment_data_packets()
-    print(stats)
+    stats.increment_data_packets_client_sent()
+    stats.str_client()
 
 def send_input():
     # Clears all acks in the memory per input.
@@ -81,9 +81,9 @@ def listen_acks():
         if data:
             seq_received = data.decode(FORMAT)
             print(f"Received: {seq_received}")
-            stats.increment_ack_packets()
+            stats.increment_ack_packets_client_received()
             seq_number_with_ack_received.add(int(seq_received))
-            print(stats)
+            stats.str_client()
 
 
 def start_sending():

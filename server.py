@@ -28,15 +28,15 @@ def main():
     while True:
         message_with_seq, addr = server_socket.recvfrom(SIZE) 
         if message_with_seq:
-            stats.increment_data_packets()
+            stats.increment_data_packets_server_received()
             data, seq, client_addr = message_with_seq.decode(FORMAT).split("!")
             print(f"Message Received: {data}")
             server_response = f"{seq}!{client_addr}"
             print(f"Sending ACK: {seq}")
 
             server_socket.sendto(server_response.encode(FORMAT), addr)
-            stats.increment_ack_packets()
-            print(stats)
+            stats.increment_ack_packets_server_sent()
+            stats.str_server()
 
 
 if __name__ == "__main__":

@@ -13,7 +13,14 @@ PORT = 65435
 SIZE = 1024
 FORMAT = "utf-8"
 
+client_socket = None
+proxy_socket = None
 server_socket = None
+
+CLIENT_PORT = 65435
+PROXY_PORT = 65436
+SERVER_PORT = 65437
+
 inputs = []
 running = True
 
@@ -21,11 +28,13 @@ HISTORY_MAX_SIZE = 20
 METRICS_UPDATE_INTERVAL_IN_SECONDS = 0.5
 GRAPH_REDRAW_DELAY_IN_SECONDS = 1
 
+# Client Packets Tracker
 sender_ack_from_receiver_total_packet = 0
 sender_ack_from_receiver_total_packet_history = []
 sender_data_to_receiver_total_packet = 0
 sender_data_to_receiver_total_packet_history = []
 
+# Proxy Packets Tracker
 proxy_ack_to_sender_total_packet = 0
 proxy_ack_to_sender_total_packet_history = []
 proxy_act_from_receiver_total_packet = 0
@@ -35,6 +44,7 @@ proxy_data_from_sender_total_packet_history = []
 proxy_data_to_receiver_total_packet = 0
 proxy_data_to_receiver_total_packet_history = []
 
+# Server Packets Tracker
 receiver_act_to_sender_total_packet = 0
 receiver_ack_to_sender_total_packet_history = []
 receiver_data_from_sender_total_packet = 0
@@ -45,12 +55,13 @@ def signal_handler(sig, frame):
     global running
     print("\nUser Interruption. Shutting down server.")
     running = False
-    for s in inputs:
-        if s is not server_socket:
-            s.close()
+    if client_socket:
+        client_socket.close()
     if server_socket:
         server_socket.close()
-    sys.exit(0)
+    if proxy_socket:
+        proxy_socket.close()
+    exit(0)
 
 signal.signal(signal.SIGINT, signal_handler)
 
@@ -131,73 +142,103 @@ def update_metrics_history():
                                                  receiver_act_to_sender_total_packet)
         update_list_pop_if_over_history_max_size(receiver_data_from_sender_total_packet_history,
                                                  receiver_data_from_sender_total_packet)
-def setup_socket():
-    global running, server_socket, sender_ack_from_receiver_total_packet, proxy_act_from_receiver_total_packet, proxy_data_from_sender_total_packet, proxy_data_to_receiver_total_packet
 
-    print("[STARTING] server is starting...")
+def client_receiver():
+    global client_socket, sender_ack_from_receiver_total_packet, sender_data_to_receiver_total_packet
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try: 
+        client_socket.bind((HOST, CLIENT_PORT))
+        client_socket.listen() 
+        print(f"Socket for CLIENT listening on {HOST}:{CLIENT_PORT}")
+
+    except OSError as e:
+        print(f"Error: {e}. Server may already be running.")
+
+    try:
+        while True:
+            conn, addr = client_socket.accept()
+            print(f"Connected by {addr}")
+
+            while True:
+                data = conn.recv(SIZE)
+                if not data:
+                    break
+
+                # print("Data Client received!")
+                received_statistics = pickle.loads(data)
+                sender_data_to_receiver_total_packet = received_statistics.total_data_packets_client_sent
+                sender_ack_from_receiver_total_packet = received_statistics.total_ack_packets_client_received
+
+            conn.close()
+    except KeyboardInterrupt:
+        print("\nServer interrupted by user")
+        server_socket.close()
+
+def server_receiver():
+    global server_socket, receiver_act_to_sender_total_packet, receiver_data_from_sender_total_packet
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.settimeout(None)
-    server_socket.bind((HOST, int(PORT)))
-    server_socket.listen()
-    print(f"[LISTEN] Server is listening on {HOST}:{PORT}")
 
-    inputs = [server_socket]
-    outputs = []
+    try: 
+        server_socket.bind((HOST, SERVER_PORT))
+        server_socket.listen()
+        print(f"Socket for SERVER listening on {HOST}:{SERVER_PORT}")
 
-    while running:
-        try:
-            readable, writable, exceptional = select.select(inputs, outputs, inputs)
-            for s in readable:
-                if s is server_socket:
-                    conn, addr = s.accept()
-                    conn.setblocking(0)
-                    inputs.append(conn)
-                    print(f"[NEW CONNECTION] Connected by {addr}")
-                    # print(f"[ACTIVE CONNECTIONS] {len(inputs) - 1}")
-                else:
-                    data = s.recv(SIZE)
+    except OSError as e:
+        print(f"Error: {e}. Server may already be running.")
 
-                    if not data:
-                        # No more data, close the connection
-                        # print(f"[CLOSED CONNECTION] No more data. Connection Closed.")
-                        if s in outputs:
-                            outputs.remove(s)
-                        inputs.remove(s)
-                        # print(f"[ACTIVE CONNECTIONS] {len(inputs) - 1}")
-                        s.close()
-                    else:
-                        # Process the received data
-                        print("Data received!")
-                        received_statistics = pickle.loads(data)
-                        print("Received data: ", received_statistics)
-                        sender_ack_from_receiver_total_packet = received_statistics.total_data_packets
+    try:
+        while True:
+            conn, addr = server_socket.accept()
+            print(f"Connected by {addr}")
 
-                        proxy_act_from_receiver_total_packet = received_statistics.ack_from_server
+            while True:
+                data = conn.recv(SIZE)
+                if not data:
+                    break
 
-                        proxy_data_from_sender_total_packet = received_statistics.packet_from_client
+                # print("Data Server received!")
+                received_statistics = pickle.loads(data)
+                receiver_act_to_sender_total_packet = received_statistics.total_ack_packets_server_sent
+                receiver_data_from_sender_total_packet = received_statistics.total_data_packets_server_received
 
-                        proxy_data_to_receiver_total_packet = received_statistics.packet_to_server
+            conn.close()
+    except KeyboardInterrupt:
+        print("\nServer interrupted by user")
+        server_socket.close()
 
+def proxy_receiver():
+    global proxy_socket, proxy_data_from_sender_total_packet, proxy_act_from_receiver_total_packet,proxy_data_to_receiver_total_packet,proxy_ack_to_sender_total_packet
+    proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-            for s in exceptional:
-                inputs.remove(s)
-                if s in outputs:
-                    outputs.remove(s)
-                s.close()
-                # print(f"[ACTIVE CONNECTIONS] {len(inputs) - 1}")
+    try: 
+        proxy_socket.bind((HOST, PROXY_PORT))
+        proxy_socket.listen() 
+        print(f"Socket for PROXY listening on {HOST}:{PROXY_PORT}")
 
-        except KeyboardInterrupt:
-            running = False
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            running = False
+    except OSError as e:
+        print(f"Error: {e}. Server may already be running.")
 
-    for s in inputs:
-        if s is not server_socket:
-            s.close()
-    server_socket.close()
-    sys.exit(0)
+    try:
+        while True:
+            conn, addr = proxy_socket.accept()
+            print(f"Connected by {addr}")
 
+            while True:
+                data = conn.recv(SIZE)
+                if not data:
+                    break
+
+                # print("Data Proxy received!")
+                received_statistics = pickle.loads(data)
+                proxy_data_from_sender_total_packet = received_statistics.packet_to_server
+                proxy_act_from_receiver_total_packet = received_statistics.ack_from_server
+                proxy_data_to_receiver_total_packet = received_statistics.packet_from_client
+                proxy_ack_to_sender_total_packet = received_statistics.ack_to_client
+
+            conn.close()
+    except KeyboardInterrupt:
+        print("\nServer interrupted by user")
+        proxy_socket.close()
 
 # Implement it so it updates total packet metrics from network
 def receive_metrics():
@@ -224,7 +265,13 @@ if __name__ == "__main__":
     update_metrics_thread = Thread(target=update_metrics_history)
     update_metrics_thread.start()
 
-    receive_metrics_thread = Thread(target=setup_socket)
-    receive_metrics_thread.start()
+    receive_client_metrics_thread = Thread(target=client_receiver)
+    receive_client_metrics_thread.start()
+
+    receive_server_metrics_thread = Thread(target=server_receiver)
+    receive_server_metrics_thread.start()
+
+    receive_proxy_metrics_thread = Thread(target=proxy_receiver)
+    receive_proxy_metrics_thread.start()
 
     show_graph()

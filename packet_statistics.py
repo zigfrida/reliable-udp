@@ -6,22 +6,33 @@ PORT = 65435
 SIZE = 1024
 FORMAT = "utf-8"
 
+CLIENT_PORT = 65435
+PROXY_PORT = 65436
+SERVER_PORT = 65437
+
 class PacketStatistics:
     def __init__(self):
-        self.total_data_packets = 0
-        self.total_ack_packets = 0
+        # Client Packets Tracker
+        self.total_data_packets_client_sent = 0
+        self.total_ack_packets_client_received = 0
+
+        # Server Packets Tracker
+        self.total_data_packets_server_received = 0
+        self.total_ack_packets_server_sent = 0
+
+        # Proxy Packets Tracker
         self.packet_to_server = 0
         self.ack_from_server = 0
         self.packet_from_client = 0
         self.ack_to_client = 0
-
-    def __str__(self):
-        return (f'Total of data packets: {str(self.total_data_packets)}\n'
-                f'Total of ack packets: {str(self.total_ack_packets)}\n')
     
-    def str_client_server(self):
-        return (f'Total of data packets: {str(self.total_data_packets)}\n'
-                f'Total of ack packets: {str(self.total_ack_packets)}\n')
+    def str_client(self):
+        return (f'Total of data packets: {str(self.total_data_packets_client_sent)}\n'
+                f'Total of ack packets: {str(self.total_ack_packets_client_received)}\n')
+    
+    def str_server(self):
+        return (f'Total of data packets: {str(self.total_data_packets_server_received)}\n'
+                f'Total of ack packets: {str(self.total_ack_packets_server_sent)}\n')
     
     def str_proxy(self):
         return (f'Total packets sent to server: {str(self.packet_to_server)}\n'
@@ -29,44 +40,85 @@ class PacketStatistics:
                 f'Total packets from client: {str(self.packet_from_client)}\n'
                 f'Total acks to client: {str(self.ack_to_client)}\n')
 
-    # Client Server functions
-    def increment_data_packets(self):
-        self.total_data_packets = self.total_data_packets + 1
-        self.send_data_to_graph()
+    # Client functions
+    def increment_data_packets_client_sent(self):
+        self.total_data_packets_client_sent = self.total_data_packets_client_sent + 1
+        self.send_client_data_to_graph()
 
-    def increment_ack_packets(self):
-        self.total_ack_packets = self.total_ack_packets + 1
-        self.send_data_to_graph()
+    def increment_ack_packets_client_received(self):
+        self.total_ack_packets_client_received = self.total_ack_packets_client_received + 1
+        self.send_client_data_to_graph()
+    
+    # Server functions
+    def increment_data_packets_server_received(self):
+        self.total_data_packets_server_received = self.total_data_packets_server_received + 1
+        self.send_server_data_to_graph()
+
+    def increment_ack_packets_server_sent(self):
+        self.total_ack_packets_server_sent = self.total_ack_packets_server_sent + 1
+        self.send_server_data_to_graph()
 
     # Proxy functions
     def inc_packet_to_server(self):
         self.packet_to_server = self.packet_to_server + 1
-        self.send_data_to_graph()
+        self.send_proxy_data_to_graph()
 
     def inc_ack_from_server(self):
         self.ack_from_server = self.ack_from_server + 1
-        self.send_data_to_graph()
+        self.send_proxy_data_to_graph()
 
     def inc_packet_from_client(self):
         self.packet_from_client = self.packet_from_client + 1
-        self.send_data_to_graph()
+        self.send_proxy_data_to_graph()
 
     def inc_ack_to_client(self):
         self.ack_to_client = self.ack_to_client + 1
-        self.send_data_to_graph()
+        self.send_proxy_data_to_graph()
 
-    def send_data_to_graph(self):
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    def send_proxy_data_to_graph(self):
+        grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
-            server_socket.connect((HOST, PORT))
-            # print("Connected!")
+            grapher_socket.connect((HOST, PROXY_PORT))
+            # print("Proxy Connected!")
         except ConnectionRefusedError:
             print("Graphing Program is not running.")
             return
         
         try: 
             data = pickle.dumps(self)
-            server_socket.sendall(data)
+            grapher_socket.sendall(data)
         finally:
-            server_socket.close()
+            grapher_socket.close()
+
+    def send_client_data_to_graph(self):
+        grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        try:
+            grapher_socket.connect((HOST, CLIENT_PORT))
+            # print("Client Connected!")
+        except ConnectionRefusedError:
+            print("Graphing Program is not running.")
+            return
+        
+        try: 
+            data = pickle.dumps(self)
+            grapher_socket.sendall(data)
+        finally:
+            grapher_socket.close()
+
+    def send_server_data_to_graph(self):
+        grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        try:
+            grapher_socket.connect((HOST, SERVER_PORT))
+            # print("Server Connected!")
+        except ConnectionRefusedError:
+            print("Graphing Program is not running.")
+            return
+        
+        try: 
+            data = pickle.dumps(self)
+            grapher_socket.sendall(data)
+        finally:
+            grapher_socket.close()

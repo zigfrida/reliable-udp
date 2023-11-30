@@ -157,7 +157,7 @@ def client_receiver():
     try:
         while True:
             conn, addr = client_socket.accept()
-            print(f"Connected by {addr}")
+            # print(f"Connected by {addr}")
 
             while True:
                 data = conn.recv(SIZE)
@@ -189,7 +189,7 @@ def server_receiver():
     try:
         while True:
             conn, addr = server_socket.accept()
-            print(f"Connected by {addr}")
+            # print(f"Connected by {addr}")
 
             while True:
                 data = conn.recv(SIZE)
@@ -221,7 +221,7 @@ def proxy_receiver():
     try:
         while True:
             conn, addr = proxy_socket.accept()
-            print(f"Connected by {addr}")
+            # print(f"Connected by {addr}")
 
             while True:
                 data = conn.recv(SIZE)

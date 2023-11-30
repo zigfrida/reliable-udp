@@ -15,8 +15,10 @@ PROXY_PORT = 65432
 SERVER_HOST = "127.0.0.1" 
 SERVER_PORT = 65433  
 
-PROB_DROPS = 0.5
-PROB_DELAYS = 0.5
+PROB_DATA_DROPS = 0.5
+PROB_DATA_DELAYS = 0.5
+PROB_ACK_DROPS = 0.5
+PROB_ACK_DELAYS = 0.5
 
 proxy_socket = None
 server_socket = None
@@ -32,16 +34,31 @@ def signal_handler(sig, frame):
         server_socket.close()
     exit(0)
 
-def proxy_prob():
+def proxy_server_prob():
     delay_chance = random.random()
     print(f"Delay chance: {delay_chance}")
-    if delay_chance < PROB_DELAYS:
+    if delay_chance < PROB_ACK_DROPS:
         print("Pakcet Delayed")
         time.sleep(3)
         return True
     
     drop_chance = random.random()
-    if drop_chance < PROB_DROPS:
+    if drop_chance < PROB_ACK_DELAYS:
+        print("Packet Dropped")
+        return False
+    
+    return True
+
+def proxy_client_prob():
+    delay_chance = random.random()
+    print(f"Delay chance: {delay_chance}")
+    if delay_chance < PROB_DATA_DROPS:
+        print("Pakcet Delayed")
+        time.sleep(3)
+        return True
+    
+    drop_chance = random.random()
+    if drop_chance < PROB_DATA_DELAYS:
         print("Packet Dropped")
         return False
     
@@ -54,7 +71,7 @@ def send_to_server():
         if client_data:
             stats.inc_packet_from_client()
             print("Got data from client")
-            if proxy_prob():
+            if proxy_client_prob():
                 print("Sending to server")
                 stats.inc_packet_to_server()
                 sequence_message = client_data.decode(FORMAT)
@@ -69,7 +86,7 @@ def send_to_client():
         if data:
             stats.inc_ack_from_server()
             print("Got sequence number from server")
-            if proxy_prob():
+            if proxy_server_prob():
                 stats.inc_ack_to_client()
                 seq, client_addr = data.decode(FORMAT).split("!")
                 host, port = client_addr.split(":")
@@ -99,9 +116,9 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 8:
         print("Missing required arguments.")
-        print("Command: python3 proxy.py PROXY_HOST PORT SERVER_HOST PORT")
+        print("Command: python3 proxy.py PROXY_HOST PORT SERVER_HOST PORT %_DROP_DATA %_DROP_ACK %_DELAY_DATA %_DELAY_ACK")
     else: 
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]
@@ -109,4 +126,10 @@ if __name__ == "__main__":
         SERVER_HOST = sys.argv[3]
         SERVER_PORT = sys.argv[4]
 
-    main()
+        PROB_DATA_DROPS = float(sys.argv[5])
+        PROB_ACK_DROPS = float(sys.argv[6])
+
+        PROB_DATA_DELAYS = float(sys.argv[7])
+        PROB_ACK_DELAYS = float(sys.argv[8])
+
+        main()

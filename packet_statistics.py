@@ -57,32 +57,56 @@ class PacketStatistics:
                   + ' increment_ack_packets_client_received:' + str(self.total_ack_packets_client_received), file=f
               )
             f.close()
-    
+
+    def save_proxy_file(self):
+        with open('proxy_logs.txt', 'w') as f:
+            print('packet_to_server: ' + str(self.packet_to_server) +
+                  ' ack_from_server: ' + str(self.ack_from_server),
+                  ' packet_from_client: ' + str(self.packet_from_client),
+                  ' ack_to_client: ' + str(self.ack_to_client),
+                  file=f
+              )
+            f.close()
+
+    def save_server(self):
+        with open('server_logs.txt', 'w') as f:
+            print('total_data_packets_server_received: ' + str(self.total_data_packets_server_received) +
+                  ' total_ack_packets_server_sent: ' + str(self.total_ack_packets_server_sent),
+                  file=f
+              )
+            f.close()
+
     # Server functions
     def increment_data_packets_server_received(self):
         self.total_data_packets_server_received = self.total_data_packets_server_received + 1
         self.send_server_data_to_graph()
+        self.save_server()
 
     def increment_ack_packets_server_sent(self):
         self.total_ack_packets_server_sent = self.total_ack_packets_server_sent + 1
         self.send_server_data_to_graph()
+        self.save_server()
 
     # Proxy functions
     def inc_packet_to_server(self):
         self.packet_to_server = self.packet_to_server + 1
         self.send_proxy_data_to_graph()
+        self.save_proxy_file()
 
     def inc_ack_from_server(self):
         self.ack_from_server = self.ack_from_server + 1
         self.send_proxy_data_to_graph()
+        self.save_proxy_file()
 
     def inc_packet_from_client(self):
         self.packet_from_client = self.packet_from_client + 1
         self.send_proxy_data_to_graph()
+        self.save_proxy_file()
 
     def inc_ack_to_client(self):
         self.ack_to_client = self.ack_to_client + 1
         self.send_proxy_data_to_graph()
+        self.save_proxy_file()
 
     def send_proxy_data_to_graph(self):
         grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

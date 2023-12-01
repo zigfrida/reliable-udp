@@ -262,16 +262,23 @@ def receive_metrics():
 
 
 if __name__ == "__main__":
-    update_metrics_thread = Thread(target=update_metrics_history)
-    update_metrics_thread.start()
+    if len(sys.argv) < 2:
+        print("Missing Address and Port for GUI")
 
-    receive_client_metrics_thread = Thread(target=client_receiver)
-    receive_client_metrics_thread.start()
+    else:
+        HOST = sys.argv[1]
+        PORT = sys.argv[2]
+        
+        update_metrics_thread = Thread(target=update_metrics_history)
+        update_metrics_thread.start()
 
-    receive_server_metrics_thread = Thread(target=server_receiver)
-    receive_server_metrics_thread.start()
+        receive_client_metrics_thread = Thread(target=client_receiver)
+        receive_client_metrics_thread.start()
 
-    receive_proxy_metrics_thread = Thread(target=proxy_receiver)
-    receive_proxy_metrics_thread.start()
+        receive_server_metrics_thread = Thread(target=server_receiver)
+        receive_server_metrics_thread.start()
 
-    show_graph()
+        receive_proxy_metrics_thread = Thread(target=proxy_receiver)
+        receive_proxy_metrics_thread.start()
+
+        show_graph()

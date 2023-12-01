@@ -44,10 +44,19 @@ class PacketStatistics:
     def increment_data_packets_client_sent(self):
         self.total_data_packets_client_sent = self.total_data_packets_client_sent + 1
         self.send_client_data_to_graph()
+        self.save_client_file()
 
     def increment_ack_packets_client_received(self):
         self.total_ack_packets_client_received = self.total_ack_packets_client_received + 1
         self.send_client_data_to_graph()
+        self.save_client_file()
+
+    def save_client_file(self):
+        with open('client_logs.txt', 'w') as f:
+            print('total_data_packets_client_sent:' + str(self.total_data_packets_client_sent)
+                  + ' increment_ack_packets_client_received:' + str(self.total_ack_packets_client_received), file=f
+              )
+            f.close()
     
     # Server functions
     def increment_data_packets_server_received(self):

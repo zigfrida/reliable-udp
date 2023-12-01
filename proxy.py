@@ -116,9 +116,9 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 8:
+    if len(sys.argv) < 9:
         print("Missing required arguments.")
-        print("Command: python3 proxy.py PROXY_HOST PORT SERVER_HOST PORT %_DROP_DATA %_DROP_ACK %_DELAY_DATA %_DELAY_ACK")
+        print("Command: python3 proxy.py PROXY_HOST PORT SERVER_HOST PORT %_DROP_DATA %_DROP_ACK %_DELAY_DATA %_DELAY_ACK GUI_IP_ADDRESS")
     else: 
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]
@@ -132,4 +132,5 @@ if __name__ == "__main__":
         PROB_DATA_DELAYS = float(sys.argv[7])
         PROB_ACK_DELAYS = float(sys.argv[8])
 
+        stats = PacketStatistics(sys.argv[9])
         main()

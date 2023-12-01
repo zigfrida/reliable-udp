@@ -97,11 +97,12 @@ def start_sending():
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
 
-    if len(sys.argv) < 2:
-        print("Missing IP address and port for proxy")
+    if len(sys.argv) < 3:
+        print("Missing IP address and port for proxy, and gui IP address")
     else:
         PROXY_HOST = sys.argv[1]
         PROXY_PORT = sys.argv[2]
+        stats = PacketStatistics(sys.argv[3])
         proxy_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 

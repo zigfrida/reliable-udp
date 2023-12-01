@@ -1,7 +1,6 @@
 import socket
 import pickle
 
-HOST = "127.0.0.1"
 PORT = 65435
 SIZE = 1024
 FORMAT = "utf-8"
@@ -11,7 +10,7 @@ PROXY_PORT = 65436
 SERVER_PORT = 65437
 
 class PacketStatistics:
-    def __init__(self):
+    def __init__(self, guiHost):
         # Client Packets Tracker
         self.total_data_packets_client_sent = 0
         self.total_ack_packets_client_received = 0
@@ -25,6 +24,7 @@ class PacketStatistics:
         self.ack_from_server = 0
         self.packet_from_client = 0
         self.ack_to_client = 0
+        self.guiHost = guiHost
     
     def str_client(self):
         return (f'Total of data packets: {str(self.total_data_packets_client_sent)}\n'
@@ -112,7 +112,7 @@ class PacketStatistics:
         grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
-            grapher_socket.connect((HOST, PROXY_PORT))
+            grapher_socket.connect((self.guiHost, PROXY_PORT))
             # print("Proxy Connected!")
         except ConnectionRefusedError:
             print("Graphing Program is not running.")
@@ -128,7 +128,7 @@ class PacketStatistics:
         grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
-            grapher_socket.connect((HOST, CLIENT_PORT))
+            grapher_socket.connect((self.guiHost, CLIENT_PORT))
             # print("Client Connected!")
         except ConnectionRefusedError:
             print("Graphing Program is not running.")
@@ -144,7 +144,7 @@ class PacketStatistics:
         grapher_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         try:
-            grapher_socket.connect((HOST, SERVER_PORT))
+            grapher_socket.connect((self.guiHost, SERVER_PORT))
             # print("Server Connected!")
         except ConnectionRefusedError:
             print("Graphing Program is not running.")

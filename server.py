@@ -40,9 +40,10 @@ def main():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Missing IP or port.")
+    if len(sys.argv) < 3:
+        print("Missing IP or port and GUI IP address")
     else:
         HOST = sys.argv[1]
         PORT = sys.argv[2]
+        stats = PacketStatistics(sys.argv[3])
         main()

@@ -35,32 +35,32 @@ def signal_handler(sig, frame):
     exit(0)
 
 def proxy_server_prob():
+    drop_chance = random.random()
+    if drop_chance < PROB_ACK_DROPS:
+        print("Packet Dropped")
+        return False
+
     delay_chance = random.random()
     print(f"Delay chance: {delay_chance}")
-    if delay_chance < PROB_ACK_DROPS:
+    if delay_chance < PROB_ACK_DELAYS:
         print("Pakcet Delayed")
         time.sleep(3)
         return True
-    
-    drop_chance = random.random()
-    if drop_chance < PROB_ACK_DELAYS:
-        print("Packet Dropped")
-        return False
     
     return True
 
 def proxy_client_prob():
+    drop_chance = random.random()
+    if drop_chance < PROB_DATA_DROPS:
+        print("Packet Dropped")
+        return False
+
     delay_chance = random.random()
     print(f"Delay chance: {delay_chance}")
-    if delay_chance < PROB_DATA_DROPS:
+    if delay_chance < PROB_DATA_DELAYS:
         print("Pakcet Delayed")
         time.sleep(3)
         return True
-    
-    drop_chance = random.random()
-    if drop_chance < PROB_DATA_DELAYS:
-        print("Packet Dropped")
-        return False
     
     return True
 
